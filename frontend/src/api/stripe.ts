@@ -1,0 +1,2 @@
+// This file has been removed to avoid confusion with the real Stripe implementation in checkout.ts
+// All Stripe payment functionality should use the checkout.ts file which integrates with Supabase Edge Functions
