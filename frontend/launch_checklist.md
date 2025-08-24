@@ -43,7 +43,7 @@ Use this to validate your entire app before launch
 - [x] .env.local is added to .gitignore
 
 ### Data Privacy & Integrity:
-- [ ] Users cannot tamper with ticket purchases or payout amounts
+- [x] Users cannot tamper with ticket purchases or payout amounts
 - [ ] All Stripe events validated using webhooks
 - [ ] Admin-only endpoints protected by middleware
 
