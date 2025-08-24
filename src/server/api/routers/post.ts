@@ -15,24 +15,51 @@ export const postRouter = createTRPCRouter({
 			};
 		}),
 
-	create: protectedProcedure
-		.input(z.object({ name: z.string().min(1) }))
-		.mutation(async ({ ctx, input }) => {
-			return ctx.db.post.create({
+	// Apply to become a host
+	applyToBeHost: protectedProcedure
+		.mutation(async ({ ctx }) => {
+			return ctx.db.hostApplication.create({
 				data: {
-					name: input.name,
-					createdBy: { connect: { id: ctx.session.user.id } },
+					userId: ctx.session.user.id,
+					status: "PENDING",
 				},
 			});
 		}),
 
-	getLatest: protectedProcedure.query(async ({ ctx }) => {
-		const post = await ctx.db.post.findFirst({
-			orderBy: { createdAt: "desc" },
-			where: { createdBy: { id: ctx.session.user.id } },
-		});
+	// Create a new class (for hosts)
+	createClass: protectedProcedure
+		.input(z.object({ 
+			title: z.string().min(1),
+			description: z.string().min(1),
+			price: z.number().positive(),
+		}))
+		.mutation(async ({ ctx, input }) => {
+			return ctx.db.class.create({
+				data: {
+					title: input.title,
+					description: input.description,
+					price: input.price,
+					hostId: ctx.session.user.id,
+					status: "PENDING",
+				},
+			});
+		}),
 
-		return post ?? null;
+	// Get user's host application status
+	getHostApplicationStatus: protectedProcedure.query(async ({ ctx }) => {
+		const application = await ctx.db.hostApplication.findUnique({
+			where: { userId: ctx.session.user.id },
+		});
+		return application;
+	}),
+
+	// Get user's classes
+	getUserClasses: protectedProcedure.query(async ({ ctx }) => {
+		const classes = await ctx.db.class.findMany({
+			where: { hostId: ctx.session.user.id },
+			orderBy: { createdAt: "desc" },
+		});
+		return classes;
 	}),
 
 	getSecretMessage: protectedProcedure.query(() => {

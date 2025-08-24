@@ -14,16 +14,44 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
+enum Role {
+  USER
+  HOST
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ClassStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model HostApplication {
+    id        String   @id @default(cuid())
+    userId    String   @unique
+    user      User     @relation(fields: [userId], references: [id])
+    status    ApplicationStatus @default(PENDING)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+}
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
+model Class {
+    id          String      @id @default(cuid())
+    title       String
+    description String
+    price       Decimal     @db.Decimal(10, 2)
+    hostId      String
+    host        User        @relation(fields: [hostId], references: [id])
+    status      ClassStatus @default(PENDING)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    bookings    Booking[]
 }
 
 // Necessary for Next auth
@@ -62,7 +90,11 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+    role          Role              @default(USER)
+    classes       Class[]
+    applications  HostApplication[]
+    bookings      Booking[] @relation("UserBookings")
+    payouts       Payout[]  @relation("HostPayouts")
 }
 
 model VerificationToken {
@@ -71,4 +103,42 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Booking {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation("UserBookings", fields: [userId], references: [id])
+  classId       String
+  class         Class       @relation(fields: [classId], references: [id])
+  createdAt     DateTime    @default(now())
+  transaction   Transaction?
+
+  @@unique([userId, classId])
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  bookingId       String   @unique
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String   @default("usd")
+  status          String      // e.g., 'succeeded', 'pending', 'failed'
+  paymentIntentId String   @unique // From Stripe or other payment provider
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payoutId        String?
+  payout          Payout?  @relation(fields: [payoutId], references: [id])
+}
+
+model Payout {
+  id        String   @id @default(cuid())
+  hostId    String
+  host      User     @relation("HostPayouts", fields: [hostId], references: [id])
+  amount    Decimal  @db.Decimal(10, 2)
+  currency  String   @default("usd")
+  status    String      // e.g., 'pending', 'completed', 'failed'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
 }
