@@ -50,6 +50,7 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
 }) => {
   const [pendingClasses, setPendingClasses] = useState<PendingClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [processingClassId, setProcessingClassId] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<PendingClass | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -61,14 +62,18 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
 
   const loadPendingClasses = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const result = await getPendingClasses();
       
       if (result.success && result.data) {
         setPendingClasses(result.data);
+      } else {
+        setError(result.error || 'Failed to load pending classes.');
       }
     } catch (error) {
       console.error('Error loading pending classes:', error);
+      setError('An unexpected network error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +81,7 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
 
   const handleApprove = async (classId: string) => {
     setProcessingClassId(classId);
+    setError(null);
     
     try {
       const result = await approveClass(classId, adminId);
@@ -85,11 +91,11 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
         setPendingClasses(prev => prev.filter(c => c.id !== classId));
         onClassApproved?.(classId);
       } else {
-        alert(result.error || 'Failed to approve class');
+        setError(result.error || 'Failed to approve class');
       }
     } catch (error) {
       console.error('Error approving class:', error);
-      alert('An unexpected error occurred');
+      setError('An unexpected error occurred while approving.');
     } finally {
       setProcessingClassId(null);
     }
@@ -99,6 +105,7 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
     if (!selectedClass) return;
     
     setProcessingClassId(selectedClass.id);
+    setError(null);
     
     try {
       const result = await rejectClass(selectedClass.id, adminId, rejectionNotes);
@@ -111,11 +118,11 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
         setSelectedClass(null);
         onClassRejected?.(selectedClass.id);
       } else {
-        alert(result.error || 'Failed to reject class');
+        setError(result.error || 'Failed to reject class');
       }
     } catch (error) {
       console.error('Error rejecting class:', error);
-      alert('An unexpected error occurred');
+      setError('An unexpected error occurred while rejecting.');
     } finally {
       setProcessingClassId(null);
     }
@@ -144,6 +151,19 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-brick-red/10 border border-brick-red text-brick-red p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5" />
+            <span className="font-medium">{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="p-1 rounded-full hover:bg-brick-red/20">
+            <XCircle className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Sparkles className="w-6 h-6 text-deep-orange" />
@@ -155,7 +175,7 @@ const AdminClassApproval: React.FC<AdminClassApprovalProps> = ({
         </span>
       </div>
 
-      {pendingClasses.length === 0 ? (
+      {pendingClasses.length === 0 && !error ? (
         <div className="text-center py-12 bg-light-sand rounded-2xl">
           <CheckCircle className="w-16 h-16 text-forest-green mx-auto mb-4" />
           <h3 className="text-xl font-bold text-charcoal-black mb-2">All caught up!</h3>

@@ -32,7 +32,6 @@ interface CreateCheckoutRequest {
   userEmail: string;
   className: string;
   hostName: string;
-  amount: number; // in kobo
   currency: string;
 }
 
@@ -81,10 +80,10 @@ Deno.serve(async (req: Request) => {
     const requestData: CreateCheckoutRequest = JSON.parse(bodyText);
     console.log('Parsed Body:', requestData);
 
-    const { classId, userId, userEmail, className, hostName, amount, currency } = requestData;
+    const { classId, userId, userEmail, className, hostName, currency } = requestData;
 
     // Validate required fields
-    if (!classId || !userId || !userEmail || !amount) {
+    if (!classId || !userId || !userEmail) {
       console.log('Missing required fields validation failed');
       return new Response(JSON.stringify({ 
         error: 'Missing required fields' 
@@ -137,6 +136,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Securely fetch the class price from the database
+    const serverAmount = classData.price; // Assuming 'price' is in the smallest currency unit (kobo)
+
     console.log('Checking if class is in future...');
     // Verify class is in the future
     if (new Date(classData.date_time) <= new Date()) {
@@ -165,7 +167,7 @@ Deno.serve(async (req: Request) => {
         'line_items[0][price_data][currency]': currency.toLowerCase(),
         'line_items[0][price_data][product_data][name]': className,
         'line_items[0][price_data][product_data][description]': `Live class with ${hostName}`,
-        'line_items[0][price_data][unit_amount]': amount.toString(),
+        'line_items[0][price_data][unit_amount]': serverAmount.toString(),
         'line_items[0][quantity]': '1',
         'metadata[user_id]': userId,
         'metadata[class_id]': classId,

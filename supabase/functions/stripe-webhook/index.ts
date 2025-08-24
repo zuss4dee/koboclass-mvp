@@ -305,6 +305,18 @@ async function handleChargeRefunded(supabase: any, charge: Charge) {
       return;
     }
 
+    // Fetch class data to get the correct host_id
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('host_id')
+      .eq('id', transaction.class_id)
+      .single();
+
+    if (classError || !classData) {
+      console.error('Could not find class to process refund for transaction:', transaction.id, classError);
+      // Still attempt to update transaction and ticket, but log that earning was not updated
+    }
+
     // Update transaction status
     const { error: updateTransactionError } = await supabase
       .from('transactions')
@@ -327,16 +339,18 @@ async function handleChargeRefunded(supabase: any, charge: Charge) {
       return;
     }
 
-    // Update earning status
-    const { error: updateEarningError } = await supabase
-      .from('earnings')
-      .update({ status: 'refunded' })
-      .eq('class_id', transaction.class_id)
-      .eq('host_id', transaction.user_id);
+    // Update earning status only if classData was found
+    if (classData) {
+      const { error: updateEarningError } = await supabase
+        .from('earnings')
+        .update({ status: 'refunded' })
+        .eq('class_id', transaction.class_id)
+        .eq('host_id', classData.host_id); // Use correct host_id
 
-    if (updateEarningError) {
-      console.error('Error updating earning status:', updateEarningError);
-      return;
+      if (updateEarningError) {
+        console.error('Error updating earning status:', updateEarningError);
+        return;
+      }
     }
 
     console.log('Refund processed successfully');

@@ -347,10 +347,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { data: null, error: { message: 'No user logged in' } };
       }
 
+      // Prevent users from updating sensitive fields
+      const sanitizedUpdates = { ...updates };
+      delete sanitizedUpdates.role;
+      delete sanitizedUpdates.is_host;
+      delete sanitizedUpdates.is_approved_host;
+      delete sanitizedUpdates.stripe_account_id; // Should be handled by Stripe Connect flow
+
       // Update the users table
       const { data, error } = await supabase
         .from('users')
-        .update(updates)
+        .update(sanitizedUpdates)
         .eq('id', user.id)
         .select()
         .single();
