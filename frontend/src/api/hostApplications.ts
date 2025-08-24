@@ -84,7 +84,7 @@ export const getHostApplicationStatus = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('host_applications')
-      .select('id, status, created_at, admin_notes, reviewed_at')
+      .select('id, status, created_at')
       .eq('user_id', userId)
       .single();
 
