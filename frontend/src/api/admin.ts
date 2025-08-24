@@ -1,10 +1,10 @@
 import { supabase } from './supabaseClient';
 
 // For users applying to be hosts
-export const submitHostApplication = async ({ userId, bio, reason }: { userId: string; bio: string; reason: string }) => {
+export const submitHostApplication = async ({ userId }: { userId: string }) => {
   const { data, error } = await supabase
     .from('host_applications')
-    .insert([{ user_id: userId, bio, reason, status: 'pending' }])
+    .insert([{ user_id: userId, status: 'PENDING' }])
     .select();
 
   if (error) {

@@ -60,9 +60,7 @@ export const submitHostApplication = async (
       .insert([
         {
           user_id: userId,
-          bio: applicationData.bio.trim(),
-          social_links: applicationData.social_links,
-          status: 'pending'
+          status: 'PENDING'
         }
       ])
       .select()
